@@ -1,10 +1,11 @@
 from fastapi import FastAPI, Request
-import openai
+from openai import OpenAI
 import os
 
 app = FastAPI()
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# Создаём клиент OpenAI с API-ключом из переменной окружения
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 @app.get("/")
 def root():
@@ -17,7 +18,8 @@ async def webhook(request: Request):
 
     prompt = f"Сигнал: '{message}'. Дай краткий торговый анализ, как трейдер-аналитик."
 
-    response = openai.ChatCompletion.create(
+    # Новый способ вызова чата в openai>=1.0.0
+    response = client.chat.completions.create(
         model="gpt-4",
         messages=[
             {"role": "system", "content": "Ты опытный криптоаналитик."},
@@ -25,5 +27,5 @@ async def webhook(request: Request):
         ]
     )
 
-    answer = response["choices"][0]["message"]["content"]
+    answer = response.choices[0].message.content
     return {"response": answer}
