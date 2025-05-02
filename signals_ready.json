@@ -1,0 +1,19 @@
+[
+    {
+      "symbol": "BTCUSDT",
+      "side": "BUY",
+      "reason": "RSI=28, свеча 'Hammer', новость: институциональный спрос",
+      "confidence": "Высокая",
+      "comment": "Поддержка $58.3k, вероятен отскок",
+      "timestamp": "2025-05-02 19:00"
+    },
+    {
+      "symbol": "ETHUSDT",
+      "side": "SELL",
+      "reason": "RSI=75, объём падает, свеча 'Doji'",
+      "confidence": "Средняя",
+      "comment": "Риск отката от $3200",
+      "timestamp": "2025-05-02 18:58"
+    }
+  ]
+  
