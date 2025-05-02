@@ -20,7 +20,7 @@ async def webhook(request: Request):
 
     # Новый способ вызова чата в openai>=1.0.0
     response = client.chat.completions.create(
-        model="gpt-4",
+        model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": "Ты опытный криптоаналитик."},
             {"role": "user", "content": prompt}
