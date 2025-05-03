@@ -1,11 +1,12 @@
 from fastapi import FastAPI, Request
-from openai import OpenAI
+from fastapi.responses import JSONResponse
+import json
 import os
+from datetime import datetime
 
 app = FastAPI()
 
-# Создаём клиент OpenAI с API-ключом из переменной окружения
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+SIGNALS_FILE = "signals_ready.json"
 
 @app.get("/")
 def root():
@@ -13,19 +14,30 @@ def root():
 
 @app.post("/webhook")
 async def webhook(request: Request):
-    data = await request.json()
-    message = data.get("message", "No message")
+    try:
+        data = await request.json()
 
-    prompt = f"Сигнал: '{message}'. Дай краткий торговый анализ, как трейдер-аналитик."
+        # Загружаем существующие сигналы
+        if os.path.exists(SIGNALS_FILE):
+            with open(SIGNALS_FILE, "r") as f:
+                signals = json.load(f)
+        else:
+            signals = []
 
-    # Новый способ вызова чата в openai>=1.0.0
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "Ты опытный криптоаналитик."},
-            {"role": "user", "content": prompt}
-        ]
-    )
+        # Добавляем временную метку, если нет
+        data["received_at"] = datetime.utcnow().isoformat()
 
-    answer = response.choices[0].message.content
-    return {"response": answer}
+        # Добавляем сигнал в начало списка
+        signals.insert(0, data)
+
+        # Ограничиваем размер истории (например, 100 сигналов)
+        signals = signals[:100]
+
+        # Сохраняем файл
+        with open(SIGNALS_FILE, "w") as f:
+            json.dump(signals, f, indent=2)
+
+        return {"response": "Signal saved successfully ✅"}
+
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
