@@ -5,3 +5,5 @@ streamlit
 pandas
 requests
 ta
+streamlit_autorefresh
+
