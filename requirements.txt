@@ -1,3 +1,7 @@
 fastapi
 uvicorn
 openai
+streamlit
+pandas
+requests
+ta
