@@ -20,9 +20,12 @@ def load_signals(path="signals_ready.json"):
         return []
 
 signals = load_signals()
+if not isinstance(signals, list):
+    signals = []
+signals = [s for s in signals if isinstance(s, dict)]
 
 # ===== Фильтры =====
-symbols = sorted(list(set([s["symbol"] for s in signals])))
+symbols = sorted({s.get("symbol", "") for s in signals if s.get("symbol")})
 selected_symbol = st.selectbox("Фильтр по паре:", ["Все"] + symbols)
 confidence_levels = ["Все", "Высокая", "Средняя", "Низкая"]
 selected_confidence = st.selectbox("Фильтр по уверенности:", confidence_levels)
@@ -30,10 +33,10 @@ selected_confidence = st.selectbox("Фильтр по уверенности:", 
 # ===== Преобразование в DataFrame =====
 def format_signal(sig):
     return {
-        "Пара": sig["symbol"],
-        "Сигнал": sig["side"],
-        "Причина": sig["reason"],
-        "Уверенность": sig["confidence"],
+        "Пара": sig.get("symbol", ""),
+        "Сигнал": sig.get("side", ""),
+        "Причина": sig.get("reason", ""),
+        "Уверенность": sig.get("confidence", ""),
         "Комментарий": sig.get("comment", "—"),
         "Время": sig.get("timestamp", "")
     }
