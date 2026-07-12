@@ -1,8 +1,8 @@
 import streamlit as st
-import json
 import pandas as pd
-from datetime import datetime
 from streamlit_autorefresh import st_autorefresh
+
+from signal_store import load_signals
 
 st.set_page_config(page_title="AI Сигналы", layout="wide")
 
@@ -12,13 +12,6 @@ st_autorefresh(interval=300000, key="refresh")  # каждые 5 мин
 st.title("🤖 Сигналы от ChatGPT для Binance Futures")
 
 # ===== Загрузка сигналов =====
-def load_signals(path="signals_ready.json"):
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return []
-
 signals = load_signals()
 
 # ===== Фильтры =====
