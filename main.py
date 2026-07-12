@@ -1,43 +1,81 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
 import json
-import os
+import logging
 from datetime import datetime
 
+from fastapi import FastAPI, HTTPException, Request
+
 app = FastAPI()
+logger = logging.getLogger(__name__)
 
 SIGNALS_FILE = "signals_ready.json"
+
+
+def load_signals():
+    try:
+        with open(SIGNALS_FILE, "r", encoding="utf-8") as file:
+            signals = json.load(file)
+    except FileNotFoundError:
+        return []
+    except json.JSONDecodeError as exc:
+        logger.exception("Signal history contains invalid JSON")
+        raise HTTPException(
+            status_code=500,
+            detail="Signal history is unavailable",
+        ) from exc
+    except OSError as exc:
+        logger.exception("Failed to read signal history")
+        raise HTTPException(
+            status_code=500,
+            detail="Signal history is unavailable",
+        ) from exc
+
+    if not isinstance(signals, list):
+        logger.error("Signal history must contain a JSON array")
+        raise HTTPException(
+            status_code=500,
+            detail="Signal history is unavailable",
+        )
+
+    return signals
+
+
+def save_signals(signals):
+    try:
+        with open(SIGNALS_FILE, "w", encoding="utf-8") as file:
+            json.dump(signals, file, indent=2, ensure_ascii=False)
+    except OSError as exc:
+        logger.exception("Failed to write signal history")
+        raise HTTPException(
+            status_code=500,
+            detail="Signal could not be saved",
+        ) from exc
+
 
 @app.get("/")
 def root():
     return {"status": "Bot is running"}
 
+
 @app.post("/webhook")
 async def webhook(request: Request):
     try:
         data = await request.json()
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        logger.warning("Rejected webhook with invalid JSON: %s", exc)
+        raise HTTPException(
+            status_code=400,
+            detail="Request body must contain valid JSON",
+        ) from exc
 
-        # Загружаем существующие сигналы
-        if os.path.exists(SIGNALS_FILE):
-            with open(SIGNALS_FILE, "r") as f:
-                signals = json.load(f)
-        else:
-            signals = []
+    if not isinstance(data, dict):
+        raise HTTPException(
+            status_code=422,
+            detail="Request body must be a JSON object",
+        )
 
-        # Добавляем временную метку, если нет
-        data["received_at"] = datetime.utcnow().isoformat()
+    signals = load_signals()
+    data["received_at"] = datetime.utcnow().isoformat()
+    signals.insert(0, data)
+    save_signals(signals[:100])
 
-        # Добавляем сигнал в начало списка
-        signals.insert(0, data)
-
-        # Ограничиваем размер истории (например, 100 сигналов)
-        signals = signals[:100]
-
-        # Сохраняем файл
-        with open(SIGNALS_FILE, "w") as f:
-            json.dump(signals, f, indent=2)
-
-        return {"response": "Signal saved successfully ✅"}
-
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
+    return {"response": "Signal saved successfully ✅"}
